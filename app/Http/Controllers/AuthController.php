@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterAdminRequest;
 use App\Http\Requests\RegisterParentRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,26 +17,38 @@ class AuthController extends Controller
     {
         $users = User::all();
 
-        return response()->json($users);
+        return UserResource::collection($users);
     }
 
     public function registerAdmin(RegisterAdminRequest $request)
     {
-        $admin = User::create([
-            'name' => $request->validated()['name'],
-            'email' => $request->validated()['email'],
-            'role' => 'admin',
-            'password' => Hash::make('default_password'),
-        ]);
+        $user = Auth::user();
+        if ($user->hasRole('admin')) {
+            $admin = User::create([
+                'name' => $request->validated()['name'],
+                'email' => $request->validated()['email'],
+                'role' => 'admin',
+                'password' => Hash::make('default_password'),
+            ]);
 
-        $admin->addRole('admin');
+            $admin->addRole('admin');
 
-        Password::sendResetLink(['email' => $admin->email]);
+            $status = Password::sendResetLink(['email' => $admin->email]);
 
-        return response()->json([
-            'message' => 'Admin registered successfully. A password reset email has been sent.',
-            'admin' => $admin,
-        ]);
+            if ($status == Password::RESET_LINK_SENT) {
+                return response()->json([
+                    'message' => 'Admin registered successfully. A password reset email has been sent.',
+                    'admin' => new UserResource($admin),
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Admin registered successfully, but the password reset email could not be sent.',
+                    'admin' => new UserResource($admin),
+                ], 500);
+            }
+        } else {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
     }
 
     public function registerParent(RegisterParentRequest $request)
@@ -51,12 +64,21 @@ class AuthController extends Controller
 
             $parent->addRole('parent');
 
-            Password::sendResetLink(['email' => $parent->email]);
+            $status = Password::sendResetLink(['email' => $parent->email]);
 
-            return response()->json([
-                'message' => 'Parent registered successfully. Password reset email sent.',
-                'parent' => $parent,
-            ]);
+            if ($status == Password::RESET_LINK_SENT) {
+                return response()->json([
+                    'message' => 'Parent registered successfully. A password reset email has been sent.',
+                    'parent' => new UserResource($parent),
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Parent registered successfully, but the password reset email could not be sent.',
+                    'parent' => new UserResource($parent),
+                ], 500);
+            }
+        } else {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
     }
 
@@ -73,7 +95,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 }

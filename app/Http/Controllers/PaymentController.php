@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Term;
+use App\Http\Requests\MakePaymentRequest;
 use App\Models\Payment;
 use App\Models\Student;
+use App\Models\Term;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\MakePaymentRequest;
 
 class PaymentController extends Controller
 {
     public function makePayment(MakePaymentRequest $request)
     {
-     
+
         $student = Student::findOrFail($request->student_id);
         $term = Term::findOrFail($request->term_id);
 

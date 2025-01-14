@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BalanceController;
+use App\Http\Controllers\ParentController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\StudentController;
@@ -52,4 +53,6 @@ Route::prefix('balances')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [BalanceController::class, 'getAllBalances']);
 });
 
-
+Route::prefix('parents')->middleware('auth:sanctum')->group(function () {
+    Route::get('/grouped-by-class', [ParentController::class, 'getAllParentsGroupedByClass']);
+});
